@@ -37,6 +37,7 @@ import org.apache.polaris.benchmarks.NAryTreeBuilder
  * @param numViewsMax The maximum number of views to create. If set to -1, all views are created.
  * @param numColumnsPerView The number of columns per view to create.
  * @param numViewProperties The number of view properties to create.
+ * @param storageConfigInfo The JSON to supply when creating a new StorageConfigInfo for a catalog.
  */
 case class DatasetParameters(
     numCatalogs: Int,
@@ -51,7 +52,8 @@ case class DatasetParameters(
     numViewsPerNs: Int,
     numViewsMax: Int,
     numColumnsPerView: Int,
-    numViewProperties: Int
+    numViewProperties: Int,
+    storageConfigInfo: String
 ) {
   val nAryTree: NAryTreeBuilder = NAryTreeBuilder(nsWidth, nsDepth)
   private val maxPossibleTables = nAryTree.numberOfLastLevelElements * numTablesPerNs

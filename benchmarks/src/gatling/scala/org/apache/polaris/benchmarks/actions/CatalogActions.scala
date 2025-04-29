@@ -62,7 +62,8 @@ case class CatalogActions(
       val catalogName = s"C_$i"
       Map(
         "catalogName" -> catalogName,
-        "defaultBaseLocation" -> s"${dp.defaultBaseLocation}/$catalogName"
+        "defaultBaseLocation" -> s"${dp.defaultBaseLocation}/$catalogName",
+        "storageConfigInfo" -> dp.storageConfigInfo
       )
     }
     .take(dp.numCatalogs)
@@ -90,9 +91,7 @@ case class CatalogActions(
               |    "properties": {
               |      "default-base-location": "#{defaultBaseLocation}"
               |    },
-              |    "storageConfigInfo": {
-              |      "storageType": "FILE"
-              |    }
+              |    "storageConfigInfo": #{storageConfigInfo}
               |  }
               |}""".stripMargin
           )

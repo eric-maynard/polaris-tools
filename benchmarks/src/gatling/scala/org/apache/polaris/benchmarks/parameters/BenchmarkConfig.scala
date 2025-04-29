@@ -73,7 +73,8 @@ object BenchmarkConfig {
       dataset.getInt("views-per-namespace"),
       dataset.getInt("max-views"),
       dataset.getInt("columns-per-view"),
-      dataset.getInt("view-properties")
+      dataset.getInt("view-properties"),
+      dataset.getString("storage-config-info")
     )
 
     BenchmarkConfig(connectionParams, workloadParams, datasetParams)
