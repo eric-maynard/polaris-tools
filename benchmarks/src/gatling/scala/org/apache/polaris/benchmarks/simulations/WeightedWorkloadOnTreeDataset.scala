@@ -20,7 +20,7 @@
 package org.apache.polaris.benchmarks.simulations
 
 import io.gatling.core.Predef._
-import io.gatling.core.structure.{ChainBuilder, PopulationBuilder, ScenarioBuilder}
+import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import org.apache.polaris.benchmarks.actions._
 import org.apache.polaris.benchmarks.parameters.BenchmarkConfig.config
@@ -31,11 +31,9 @@ import org.apache.polaris.benchmarks.parameters.{
   RandomNumberProvider,
   WorkloadParameters
 }
-import org.apache.polaris.benchmarks.util.CircularIterator
 import org.slf4j.LoggerFactory
 
-import java.util.UUID
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.duration._
 
 /**
@@ -57,8 +55,6 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   // Helper values
   // --------------------------------------------------------------------------------
   private val accessToken: AtomicReference[String] = new AtomicReference()
-  private val shouldRefreshToken: AtomicBoolean = new AtomicBoolean(true)
-  private val readersLaunched = new AtomicBoolean(false)
 
   private val authActions = AuthenticationActions(cp, accessToken)
   private val tblActions = TableActions(dp, wp, accessToken)
