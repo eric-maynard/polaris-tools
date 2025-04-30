@@ -99,8 +99,8 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
                 .set("catalogName", catalog)
                 .set("multipartNamespace", namespace.mkString(0x1F.toChar.toString))
                 .set("tableName", table)
-            }
-          }.exec(tblActions.fetchTable)
+            }.exec(tblActions.fetchTable)
+          }
       }
     }
   }.toList
