@@ -72,44 +72,15 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
 
 object Distribution {
 
-  // Used to represent a range of values where start is inclusive and end is exclusive
-  private case class Slice(start: Int, end: Int) {
-    def size: Int = end - start
-  }
-
-  // Partition a Slice into a sub-slice
-  private def partitionSlice(slice: Slice, totalPartitions: Int, partition: Int): Slice = {
-    require(partition >= 0 && partition < totalPartitions,
-      s"Invalid partition index: ${partition} / ${totalPartitions}")
-
-    val newPartitionSize = slice.size / totalPartitions
-    val newPartitionStart = slice.start + (partition * newPartitionSize)
-    val newPartitionEnd = newPartitionStart + newPartitionSize
-
-    Slice(newPartitionStart, newPartitionEnd)
-  }
-
   // Map an index back to a table path
   def tableIndexToIdentifier(index: Int, dp: DatasetParameters): (String, List[String], String) = {
     require(dp.numTablesMax == -1, "Sampling is incompatible with numTablesMax settings other than -1")
 
-    val totalSlice = Slice(0, dp.totalTables)
-    val tablesPerCatalog = totalSlice.size / dp.numCatalogs
+    val tablesPerCatalog = dp.totalTables / dp.numCatalogs
     val catalogIndex = index / tablesPerCatalog
-    var currentSlice = partitionSlice(totalSlice, dp.numCatalogs, catalogIndex)
 
-    val namespacePath = ArrayBuffer[String]()
-    (1 until dp.nsDepth).foreach { _ =>
-      val indexInSlice = index - currentSlice.start
-      val tablesPerNamespace = currentSlice.size / dp.nsWidth
-      val namespaceIndex = indexInSlice / tablesPerNamespace
-
-      currentSlice = partitionSlice(currentSlice, dp.nsWidth, namespaceIndex)
-      namespacePath += s"NS_${namespaceIndex}"
-    }
-    require(currentSlice.size == dp.numTablesPerNs,
-      s"The final slice size should be size ${dp.numTablesPerNs} (slice = ${currentSlice})")
-    (s"C_$catalogIndex", namespacePath.toList, s"T_${index - currentSlice.start}")
+    val namespaceOrdinal = dp.nAryTree.pathToRoot(index / dp.numTablesPerNs)
+    (s"C_$catalogIndex", namespaceOrdinal.map(n => s"NS_${n}"), s"T_${index}")
   }
 }
 
