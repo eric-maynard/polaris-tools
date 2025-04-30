@@ -102,10 +102,6 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
           .exec(authActions.restoreAccessTokenInSession)
           .during(wp.weightedWorkloadOnTreeDataset.durationInMinutes.minutes) {
             exec { session =>
-              while (session.contains("accessToken")) {
-                Thread.sleep(100)
-              }
-
               val tableIndex = dist.sample(dp.totalTables, rnp)
               val (catalog, namespace, table) =
                 Distribution.tableIndexToIdentifier(tableIndex, dp)
