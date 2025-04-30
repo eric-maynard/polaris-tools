@@ -24,7 +24,13 @@ import io.gatling.core.structure.{ChainBuilder, PopulationBuilder, ScenarioBuild
 import io.gatling.http.Predef._
 import org.apache.polaris.benchmarks.actions._
 import org.apache.polaris.benchmarks.parameters.BenchmarkConfig.config
-import org.apache.polaris.benchmarks.parameters.{ConnectionParameters, DatasetParameters, Distribution, RandomNumberProvider, WorkloadParameters}
+import org.apache.polaris.benchmarks.parameters.{
+  ConnectionParameters,
+  DatasetParameters,
+  Distribution,
+  RandomNumberProvider,
+  WorkloadParameters
+}
 import org.apache.polaris.benchmarks.util.CircularIterator
 import org.slf4j.LoggerFactory
 
@@ -33,9 +39,9 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import scala.concurrent.duration._
 
 /**
- * This simulation performs reads and writes based on distributions specified in the config. It allows
- * the simulation of workloads where e.g. a small fraction of tables get most writes. It is intended to
- * be used against a Polaris instance with a pre-existing tree dataset.
+ * This simulation performs reads and writes based on distributions specified in the config. It
+ * allows the simulation of workloads where e.g. a small fraction of tables get most writes. It is
+ * intended to be used against a Polaris instance with a pre-existing tree dataset.
  */
 class WeightedWorkloadOnTreeDataset extends Simulation {
   private val logger = LoggerFactory.getLogger(getClass)
@@ -85,7 +91,7 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   // --------------------------------------------------------------------------------
   // Create all reader/writer scenarios and prepare them for injection
   // --------------------------------------------------------------------------------
-  private val readerScenarioBuilders: List[ScenarioBuilder] = {
+  private val readerScenarioBuilders: List[ScenarioBuilder] =
     wp.weightedWorkloadOnTreeDataset.readers.zipWithIndex.flatMap { case (dist, i) =>
       (0 until dist.count).map { threadId =>
         val rnp = RandomNumberProvider(wp.weightedWorkloadOnTreeDataset.seed, i * 1000 + threadId)
@@ -106,17 +112,16 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
 
               session
                 .set("catalogName", catalog)
-                .set("multipartNamespace", namespace.mkString(0x1F.toChar.toString))
+                .set("multipartNamespace", namespace.mkString(0x1f.toChar.toString))
                 .set("tableName", table)
                 .set("initialProperties", expectedProperties)
                 .set("location", expectedLocation)
             }.exec(tblActions.fetchTable)
           }
       }
-    }
-  }.toList
+    }.toList
 
-  private val writerScenarioBuilders: List[ScenarioBuilder] = {
+  private val writerScenarioBuilders: List[ScenarioBuilder] =
     wp.weightedWorkloadOnTreeDataset.writers.zipWithIndex.flatMap { case (dist, i) =>
       (0 until dist.count).map { threadId =>
         val rnp = RandomNumberProvider(wp.weightedWorkloadOnTreeDataset.seed, i * 2000 + threadId)
@@ -134,14 +139,13 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
 
               session
                 .set("catalogName", catalog)
-                .set("multipartNamespace", namespace.mkString(0x1F.toChar.toString))
+                .set("multipartNamespace", namespace.mkString(0x1f.toChar.toString))
                 .set("tableName", table)
                 .set("newProperty", newProperty)
             }.exec(tblActions.updateTable)
           }
       }
-    }
-  }.toList
+    }.toList
 
   // --------------------------------------------------------------------------------
   // Setup

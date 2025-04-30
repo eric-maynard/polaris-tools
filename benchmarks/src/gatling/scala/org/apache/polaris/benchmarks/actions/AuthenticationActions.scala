@@ -23,7 +23,10 @@ import io.gatling.core.Predef._
 import io.gatling.core.feeder.Feeder
 import io.gatling.core.structure.ChainBuilder
 import io.gatling.http.Predef._
-import org.apache.polaris.benchmarks.RetryOnHttpCodes.{HttpRequestBuilderWithStatusSave, retryOnHttpStatus}
+import org.apache.polaris.benchmarks.RetryOnHttpCodes.{
+  retryOnHttpStatus,
+  HttpRequestBuilderWithStatusSave
+}
 import org.apache.polaris.benchmarks.parameters.ConnectionParameters
 import org.slf4j.LoggerFactory
 

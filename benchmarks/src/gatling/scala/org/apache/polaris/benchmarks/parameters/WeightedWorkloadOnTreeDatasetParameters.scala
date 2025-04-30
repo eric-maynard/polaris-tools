@@ -37,13 +37,14 @@ case class WeightedWorkloadOnTreeDatasetParameters(
     seed: Int,
     readers: Seq[Distribution],
     writers: Seq[Distribution],
-    durationInMinutes: Int) {
+    durationInMinutes: Int
+) {
   require(readers.nonEmpty || writers.nonEmpty, "At least one reader or writer is required")
   require(durationInMinutes > 0, "Duration in minutes must be positive")
 }
 
 object WeightedWorkloadOnTreeDatasetParameters {
-  def loadDistributionsList(config: Config, key: String): List[Distribution] = {
+  def loadDistributionsList(config: Config, key: String): List[Distribution] =
     config.getConfigList(key).asScala.toList.map { conf =>
       Distribution(
         count = conf.getInt("count"),
@@ -51,10 +52,10 @@ object WeightedWorkloadOnTreeDatasetParameters {
         variance = conf.getDouble("variance")
       )
     }
-  }
 }
 
 case class Distribution(count: Int, mean: Double, variance: Double) {
+
   /**
    * Return a value in [0, items) based on this distribution using truncated normal resampling.
    */
@@ -74,7 +75,10 @@ object Distribution {
 
   // Map an index back to a table path
   def tableIndexToIdentifier(index: Int, dp: DatasetParameters): (String, List[String], String) = {
-    require(dp.numTablesMax == -1, "Sampling is incompatible with numTablesMax settings other than -1")
+    require(
+      dp.numTablesMax == -1,
+      "Sampling is incompatible with numTablesMax settings other than -1"
+    )
 
     val namespaceIndex = index / dp.numTablesPerNs
     val namespaceOrdinal = dp.nAryTree.lastLevelOrdinals.toList.apply(namespaceIndex)
