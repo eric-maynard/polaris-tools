@@ -20,6 +20,7 @@
 package org.apache.polaris.benchmarks.parameters
 
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.Logger
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -78,35 +79,36 @@ object Distribution {
 
   // Partition a Slice into a sub-slice
   private def partitionSlice(slice: Slice, totalPartitions: Int, partition: Int): Slice = {
-    require(partition >= 0 && partition < totalPartitions, s"Invalid partition index: $partition")
-    val total = slice.end - slice.start
-    val baseSize = total / totalPartitions
-    val remainder = total % totalPartitions
+    require(partition >= 0 && partition < totalPartitions,
+      s"Invalid partition index: ${partition} / ${totalPartitions}")
 
-    val extra = if (partition < remainder) 1 else 0
-    val offset = partition * baseSize + math.min(partition, remainder)
-    val start = slice.start + offset
-    val end = start + baseSize + extra
+    val newPartitionSize = slice.size / totalPartitions
+    val newPartitionStart = slice.start + (partition * newPartitionSize)
+    val newPartitionEnd = newPartitionStart + newPartitionSize
 
-    Slice(start, end)
+    Slice(newPartitionStart, newPartitionEnd)
   }
 
   // Map an index back to a table path
   def tableIndexToIdentifier(index: Int, dp: DatasetParameters): (String, List[String], String) = {
     require(dp.numTablesMax == -1, "Sampling is incompatible with numTablesMax settings other than -1")
 
-    val tablesPerCatalog = dp.totalTables / dp.numCatalogs
+    val totalSlice = Slice(0, dp.totalTables)
+    val tablesPerCatalog = totalSlice.size / dp.numCatalogs
     val catalogIndex = index / tablesPerCatalog
+    var currentSlice = partitionSlice(totalSlice, dp.numCatalogs, catalogIndex)
 
-    var currentSlice = partitionSlice(Slice(0, dp.totalTables), dp.numCatalogs, catalogIndex)
     val namespacePath = ArrayBuffer[String]()
-    (0 until dp.nsDepth).foreach { _ =>
+    (1 until dp.nsDepth).foreach { _ =>
       val indexInSlice = index - currentSlice.start
-      val namespaceIndex = indexInSlice / dp.nsWidth
+      val tablesPerNamespace = currentSlice.size / dp.nsWidth
+      val namespaceIndex = indexInSlice / tablesPerNamespace
+
       currentSlice = partitionSlice(currentSlice, dp.nsWidth, namespaceIndex)
       namespacePath += s"NS_${namespaceIndex}"
     }
-    require(currentSlice.size == dp.numTablesPerNs, "The final slice size should match numTablesPerNs")
+    require(currentSlice.size == dp.numTablesPerNs,
+      s"The final slice size should be size ${dp.numTablesPerNs} (slice = ${currentSlice})")
     (s"C_$catalogIndex", namespacePath.toList, s"T_${index - currentSlice.start}")
   }
 }

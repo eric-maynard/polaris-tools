@@ -79,7 +79,9 @@ case class DatasetParameters(
     s"Maximum number of views ($numViewsMax) cannot exceed computed total ($maxPossibleViews)"
   )
 
-  val totalTables: Int = Math.min(
-    numCatalogs * Math.max(numTablesMax, Int.MaxValue),
-    numCatalogs * numTablesPerNs * nAryTree.numberOfLastLevelElements)
+  val totalTables: Int = if (numTablesMax != -1) {
+    numCatalogs * numTablesMax
+  } else {
+    numCatalogs * numTablesPerNs * nAryTree.numberOfLastLevelElements
+  }
 }
