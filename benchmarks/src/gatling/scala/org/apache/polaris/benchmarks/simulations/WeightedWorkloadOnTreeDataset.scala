@@ -28,6 +28,7 @@ import org.apache.polaris.benchmarks.parameters.{ConnectionParameters, DatasetPa
 import org.apache.polaris.benchmarks.util.CircularIterator
 import org.slf4j.LoggerFactory
 
+import java.util.UUID
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import scala.concurrent.duration._
 
@@ -82,7 +83,7 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
     .contentTypeHeader("application/json")
 
   // --------------------------------------------------------------------------------
-  // Create all reader scenarios and prepare them for injection
+  // Create all reader/writer scenarios and prepare them for injection
   // --------------------------------------------------------------------------------
   private val readerScenarioBuilders: List[ScenarioBuilder] = {
     wp.weightedWorkloadOnTreeDataset.readers.zipWithIndex.flatMap { case (dist, i) =>
@@ -115,6 +116,33 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
     }
   }.toList
 
+  private val writerScenarioBuilders: List[ScenarioBuilder] = {
+    wp.weightedWorkloadOnTreeDataset.writers.zipWithIndex.flatMap { case (dist, i) =>
+      (0 until dist.count).map { threadId =>
+        val rnp = RandomNumberProvider(wp.weightedWorkloadOnTreeDataset.seed, i * 1000 + threadId)
+        scenario(s"Writer-$i-$threadId")
+          .exec(authActions.restoreAccessTokenInSession)
+          .during(wp.weightedWorkloadOnTreeDataset.durationInMinutes.minutes) {
+            exec { session =>
+              val tableIndex = dist.sample(dp.maxPossibleTables, rnp)
+              val (catalog, namespace, table) =
+                Distribution.tableIndexToIdentifier(tableIndex, dp)
+
+              // Needed for `updateTable`
+              val now = System.currentTimeMillis
+              val newProperty = s"""{"last_updated": "${now}"}"""
+
+              session
+                .set("catalogName", catalog)
+                .set("multipartNamespace", namespace.mkString(0x1F.toChar.toString))
+                .set("tableName", table)
+                .set("newProperty", newProperty)
+            }.exec(tblActions.updateTable)
+          }
+      }
+    }
+  }.toList
+
   // --------------------------------------------------------------------------------
   // Setup
   // --------------------------------------------------------------------------------
@@ -122,6 +150,8 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
     List(
       refreshOauthForDuration.inject(atOnceUsers(1)).protocols(httpProtocol),
       waitForAuthentication.inject(atOnceUsers(1)).protocols(httpProtocol)
-    ) ++ readerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol))
+    ) ++
+      readerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol)) ++
+      writerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol))
   )
 }
