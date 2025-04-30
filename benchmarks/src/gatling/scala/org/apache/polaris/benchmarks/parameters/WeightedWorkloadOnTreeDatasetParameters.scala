@@ -77,7 +77,9 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
       .getOrElse((-1, 100000))
 
     if (resamples > 5) {
-      logger.warn(s"A distribution appears to require aggressive resampling: ${this} took ${resamples + 1} samples!")
+      logger.warn(
+        s"A distribution appears to require aggressive resampling: ${this} took ${resamples + 1} samples!"
+      )
     }
   }
 
@@ -105,7 +107,7 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
         .dropWhile(x => x < 0.0 || x > 1.0)
         .next()
 
-      val bin = ((value * bins).toInt).min(bins - 1)
+      val bin = (value * bins).toInt.min(bins - 1)
       binCounts(bin) += 1
     }
 
