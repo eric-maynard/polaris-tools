@@ -114,10 +114,14 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
     .acceptHeader("application/json")
     .contentTypeHeader("application/json")
 
-
   // --------------------------------------------------------------------------------
   // Setup
   // --------------------------------------------------------------------------------
-  // TODO add the weightedWorkloadPopulation here
+  val allBuilders: List[PopulationBuilder] =
+    List(
+      continuouslyRefreshOauthToken.inject(atOnceUsers(1)).protocols(httpProtocol)) ++
+      weightedWorkloadPopulation ++
+      List(stopRefreshingToken.inject(atOnceUsers(1)).protocols(httpProtocol))
 
+  setUp(allBuilders)
 }
