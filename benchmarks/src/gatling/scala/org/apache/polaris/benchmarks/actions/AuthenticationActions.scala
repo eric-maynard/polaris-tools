@@ -85,8 +85,9 @@ case class AuthenticationActions(
         .check(jsonPath("$.access_token").saveAs("accessToken"))
     )
       .exec { session =>
-        if (session.contains("accessToken"))
+        if (session.contains("accessToken")) {
           accessToken.set(session("accessToken").as[String])
+        }
         session
       }
 
