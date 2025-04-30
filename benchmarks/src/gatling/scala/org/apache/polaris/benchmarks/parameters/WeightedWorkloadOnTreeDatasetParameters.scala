@@ -67,7 +67,7 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
     printVisualization(dataset.maxPossibleTables)
 
     // Warn if a large amount of resampling will be needed
-    val debugRandomNumberProvider = RandomNumberProvider(1, 2)
+    val debugRandomNumberProvider = RandomNumberProvider("debug".hashCode, -1)
     def resampleStream: LazyList[Double] =
       LazyList.continually(sample(dataset.maxPossibleTables, debugRandomNumberProvider))
 
@@ -77,7 +77,7 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
       .map { case (value, index) => (value, index) }
       .getOrElse((-1, 100000))
 
-    if (resamples > 10) {
+    if (resamples > 100) {
       logger.warn(
         s"A distribution appears to require aggressive resampling: ${this} took ${resamples + 1} samples!"
       )
