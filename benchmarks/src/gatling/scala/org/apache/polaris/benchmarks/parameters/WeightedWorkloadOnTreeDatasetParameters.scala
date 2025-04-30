@@ -21,8 +21,10 @@ package org.apache.polaris.benchmarks.parameters
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.LazyList
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
@@ -55,6 +57,29 @@ object WeightedWorkloadOnTreeDatasetParameters {
 }
 
 case class Distribution(count: Int, mean: Double, variance: Double) {
+  private val logger = LoggerFactory.getLogger(getClass)
+
+  def printDescription(): Unit = {
+    println(s"Summary for ${this}")
+
+    // On startup, print some metadata about the distribution
+    printVisualiztion()
+
+    // Warn if a large amount of resampling will be needed
+    val debugRandomNumberProvider = RandomNumberProvider(1, 2)
+    def resampleStream: LazyList[Double] =
+      LazyList.continually(debugRandomNumberProvider.next() * math.sqrt(variance) + mean)
+
+    val (_, resamples) = resampleStream.zipWithIndex
+      .take(100000)
+      .find { case (value, _) => value >= 0 && value <= 1 }
+      .map { case (value, index) => (value, index) }
+      .getOrElse((-1, 100000))
+
+    if (resamples > 5) {
+      logger.warn(s"A distribution appears to require aggressive resampling: ${this} took ${resamples + 1} samples")
+    }
+  }
 
   /**
    * Return a value in [0, items) based on this distribution using truncated normal resampling.
@@ -68,6 +93,35 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
       .next()
 
     (value * items).toInt.min(items - 1)
+  }
+
+  def printVisualiztion(samples: Int = 100000, bins: Int = 10): Unit = {
+    val binCounts = Array.fill(bins)(0)
+    val rng = new RandomNumberProvider(1, 2)
+
+    for (_ <- 1 to samples) {
+      val value = Iterator
+        .continually(rng.next() * math.sqrt(variance) + mean)
+        .dropWhile(x => x < 0.0 || x > 1.0)
+        .next()
+
+      val bin = ((value * bins).toInt).min(bins - 1)
+      binCounts(bin) += 1
+    }
+
+    val maxBarWidth = 50
+    val total = binCounts.sum.toDouble
+    println("Range         | % of Samples | Visualization")
+    println("--------------|--------------|------------------")
+
+    for (i <- 0 until bins) {
+      val low = i.toDouble / bins
+      val high = (i + 1).toDouble / bins
+      val percent = binCounts(i) / total * 100
+      val bar = "█" * ((percent / 100 * maxBarWidth).round.toInt)
+      println(f"[$low%.1f - $high%.1f) | $percent%6.2f%%      | $bar")
+    }
+    println()
   }
 }
 
