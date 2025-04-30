@@ -95,7 +95,11 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
       .continually(randomNumberProvider.next() * stddev + mean)
       .take(maxSamples)
       .find(x => x >= 0.0 && x <= 1.0)
-      .getOrElse(throw new RuntimeException(s"Failed to sample a value in [0, 1] after ${maxSamples} attempts"))
+      .getOrElse(
+        throw new RuntimeException(
+          s"Failed to sample a value in [0, 1] after ${maxSamples} attempts"
+        )
+      )
 
     (value * items).toInt.min(items - 1)
   }
