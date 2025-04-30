@@ -51,11 +51,11 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   val dp: DatasetParameters = config.datasetParameters
   val wp: WorkloadParameters = config.workloadParameters
 
-  println("Reader distributions:")
-  wp.weightedWorkloadOnTreeDataset.readers.foreach(_.printDescription())
+  println("### Reader distributions ###")
+  wp.weightedWorkloadOnTreeDataset.readers.foreach(_.printDescription(dp))
 
-  println("Writer distributions:")
-  wp.weightedWorkloadOnTreeDataset.writers.foreach(_.printDescription())
+  println("### Writer distributions ###")
+  wp.weightedWorkloadOnTreeDataset.writers.foreach(_.printDescription(dp))
 
   // --------------------------------------------------------------------------------
   // Helper values
