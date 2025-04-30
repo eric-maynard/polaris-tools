@@ -20,15 +20,16 @@
 package org.apache.polaris.benchmarks.simulations
 
 import io.gatling.core.Predef._
-import io.gatling.core.structure.ScenarioBuilder
+import io.gatling.core.structure.{ChainBuilder, PopulationBuilder, ScenarioBuilder}
 import io.gatling.http.Predef._
 import org.apache.polaris.benchmarks.actions._
 import org.apache.polaris.benchmarks.parameters.BenchmarkConfig.config
-import org.apache.polaris.benchmarks.parameters.WorkloadParameters
+import org.apache.polaris.benchmarks.parameters.{ConnectionParameters, DatasetParameters, Distribution, RandomNumberProvider, WorkloadParameters}
+import org.apache.polaris.benchmarks.util.CircularIterator
 import org.slf4j.LoggerFactory
 
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
-import scala.concurrent.duration.DurationInt
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import scala.concurrent.duration._
 
 /**
  * This simulation performs reads and writes based on distributions specified in the config. It allows
@@ -41,27 +42,18 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   // --------------------------------------------------------------------------------
   // Load parameters
   // --------------------------------------------------------------------------------
-  private val cp = config.connectionParameters
-  private val dp = config.datasetParameters
+  val cp: ConnectionParameters = config.connectionParameters
+  val dp: DatasetParameters = config.datasetParameters
   val wp: WorkloadParameters = config.workloadParameters
 
   // --------------------------------------------------------------------------------
   // Helper values
   // --------------------------------------------------------------------------------
-  private val numNamespaces: Int = dp.nAryTree.numberOfNodes
   private val accessToken: AtomicReference[String] = new AtomicReference()
   private val shouldRefreshToken: AtomicBoolean = new AtomicBoolean(true)
 
-  private val authenticationActions = AuthenticationActions(cp, accessToken)
-  private val catalogActions = CatalogActions(dp, accessToken)
-  private val namespaceActions = NamespaceActions(dp, wp, accessToken)
-  private val tableActions = TableActions(dp, wp, accessToken)
-  private val viewActions = ViewActions(dp, wp, accessToken)
-
-  private val verifiedCatalogs = new AtomicInteger()
-  private val verifiedNamespaces = new AtomicInteger()
-  private val verifiedTables = new AtomicInteger()
-  private val verifiedViews = new AtomicInteger()
+  private val authActions = AuthenticationActions(cp, accessToken)
+  private val tblActions = TableActions(dp, wp, accessToken)
 
   // --------------------------------------------------------------------------------
   // Authentication related workloads:
@@ -72,8 +64,8 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   val continuouslyRefreshOauthToken: ScenarioBuilder =
     scenario("Authenticate every minute using the Iceberg REST API")
       .asLongAs(_ => shouldRefreshToken.get()) {
-        feed(authenticationActions.feeder())
-          .exec(authenticationActions.authenticateAndSaveAccessToken)
+        feed(authActions.feeder())
+          .exec(authActions.authenticateAndSaveAccessToken)
           .pause(1.minute)
       }
 
@@ -90,59 +82,29 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
         session
       }
 
-  // --------------------------------------------------------------------------------
-  // Workload: Verify each catalog
-  // --------------------------------------------------------------------------------
-  private val verifyCatalogs = scenario("Verify catalogs using the Polaris Management REST API")
-    .exec(authenticationActions.restoreAccessTokenInSession)
-    .asLongAs(session =>
-      verifiedCatalogs.getAndIncrement() < dp.numCatalogs && session.contains("accessToken")
-    )(
-      feed(catalogActions.feeder())
-        .exec(catalogActions.fetchCatalog)
-    )
+  // Build the population with readers + writers
+  val weightedWorkloadPopulation: List[PopulationBuilder] = {
+    val readers = wp.weightedWorkloadOnTreeDataset.readers.zipWithIndex.flatMap { case (dist, i) =>
+      (0 until dist.count).map { threadId =>
+        val rnp = RandomNumberProvider(
+          wp.weightedWorkloadOnTreeDataset.seed, i * 1000 + threadId)
+        scenario(s"Reader-$i-$threadId")
+          .during(wp.weightedWorkloadOnTreeDataset.durationInMinutes.minutes) {
+            exec { session =>
+              val tableIndex = dist.sample(dp.totalTables, rnp)
+              val (catalog, namespace, table) =
+                Distribution.tableIndexToIdentifier(tableIndex, dp)
+              session.set("catalogName", catalog)
+              session.set("multipartNamespace", namespace.mkString(0x1F.toChar.toString))
+              session.set("tableName", table)
+            }.exec(tblActions.fetchTable)
+          }.inject(atOnceUsers(1))
+      }
+    }.toList
 
-  // --------------------------------------------------------------------------------
-  // Workload: Verify namespaces
-  // --------------------------------------------------------------------------------
-  private val verifyNamespaces = scenario("Verify namespaces using the Iceberg REST API")
-    .exec(authenticationActions.restoreAccessTokenInSession)
-    .asLongAs(session =>
-      verifiedNamespaces.getAndIncrement() < numNamespaces && session.contains("accessToken")
-    )(
-      feed(namespaceActions.namespaceFetchFeeder())
-        .exec(namespaceActions.fetchAllChildrenNamespaces)
-        .exec(namespaceActions.checkNamespaceExists)
-        .exec(namespaceActions.fetchNamespace)
-    )
-
-  // --------------------------------------------------------------------------------
-  // Workload: Verify tables
-  // --------------------------------------------------------------------------------
-  private val verifyTables = scenario("Verify tables using the Iceberg REST API")
-    .exec(authenticationActions.restoreAccessTokenInSession)
-    .asLongAs(session =>
-      verifiedTables.getAndIncrement() < dp.numTables && session.contains("accessToken")
-    )(
-      feed(tableActions.tableFetchFeeder())
-        .exec(tableActions.fetchAllTables)
-        .exec(tableActions.checkTableExists)
-        .exec(tableActions.fetchTable)
-    )
-
-  // --------------------------------------------------------------------------------
-  // Workload: Verify views
-  // --------------------------------------------------------------------------------
-  private val verifyViews = scenario("Verify views using the Iceberg REST API")
-    .exec(authenticationActions.restoreAccessTokenInSession)
-    .asLongAs(session =>
-      verifiedViews.getAndIncrement() < dp.numViews && session.contains("accessToken")
-    )(
-      feed(viewActions.viewFetchFeeder())
-        .exec(viewActions.fetchAllViews)
-        .exec(viewActions.checkViewExists)
-        .exec(viewActions.fetchView)
-    )
+    val writers = List.empty
+    readers ++ writers
+  }
 
   // --------------------------------------------------------------------------------
   // Build up the HTTP protocol configuration and set up the simulation
@@ -152,18 +114,10 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
     .acceptHeader("application/json")
     .contentTypeHeader("application/json")
 
-  // Get the configured throughput for tables and views
-  private val tableThroughput = wp.readTreeDataset.tableThroughput
-  private val viewThroughput = wp.readTreeDataset.viewThroughput
 
-  setUp(
-    continuouslyRefreshOauthToken.inject(atOnceUsers(1)).protocols(httpProtocol),
-    waitForAuthentication
-      .inject(atOnceUsers(1))
-      .andThen(verifyCatalogs.inject(atOnceUsers(1)).protocols(httpProtocol))
-      .andThen(verifyNamespaces.inject(atOnceUsers(dp.nsDepth)).protocols(httpProtocol))
-      .andThen(verifyTables.inject(atOnceUsers(tableThroughput)).protocols(httpProtocol))
-      .andThen(verifyViews.inject(atOnceUsers(viewThroughput)).protocols(httpProtocol))
-      .andThen(stopRefreshingToken.inject(atOnceUsers(1)).protocols(httpProtocol))
-  )
+  // --------------------------------------------------------------------------------
+  // Setup
+  // --------------------------------------------------------------------------------
+  // TODO add the weightedWorkloadPopulation here
+
 }

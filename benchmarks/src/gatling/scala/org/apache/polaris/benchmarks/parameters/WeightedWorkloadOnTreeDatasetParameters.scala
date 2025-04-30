@@ -22,6 +22,8 @@ package org.apache.polaris.benchmarks.parameters
 import com.typesafe.config.Config
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 /**
  * Case class to hold the parameters for the WeightedWorkloadOnTreeDataset simulation.
@@ -51,4 +53,65 @@ object WeightedWorkloadOnTreeDatasetParameters {
   }
 }
 
-case class Distribution(count: Int, mean: Double, variance: Double)
+case class Distribution(count: Int, mean: Double, variance: Double) {
+  /**
+   * Return a value in [0, items) based on this distribution using truncated normal resampling.
+   */
+  def sample(items: Int, randomNumberProvider: RandomNumberProvider): Int = {
+    val stddev = math.sqrt(variance)
+    // Resample until the value is in [0, 1]
+    val value = Iterator
+      .continually(randomNumberProvider.next() * stddev + mean)
+      .dropWhile(x => x < 0.0 || x > 1.0)
+      .next()
+
+    (value * items).toInt.min(items - 1)
+  }
+}
+
+object Distribution {
+
+  // Used to represent a range of values where start is inclusive and end is exclusive
+  private case class Slice(start: Int, end: Int) {
+    def size: Int = end - start
+  }
+
+  // Partition a Slice into a sub-slice
+  private def partitionSlice(slice: Slice, totalPartitions: Int, partition: Int): Slice = {
+    require(partition >= 0 && partition < totalPartitions, s"Invalid partition index: $partition")
+    val total = slice.end - slice.start
+    val baseSize = total / totalPartitions
+    val remainder = total % totalPartitions
+
+    val extra = if (partition < remainder) 1 else 0
+    val offset = partition * baseSize + math.min(partition, remainder)
+    val start = slice.start + offset
+    val end = start + baseSize + extra
+
+    Slice(start, end)
+  }
+
+  // Map an index back to a table path
+  def tableIndexToIdentifier(index: Int, dp: DatasetParameters): (String, List[String], String) = {
+    require(dp.numTablesMax == -1, "Sampling is incompatible with numTablesMax settings other than -1")
+
+    val tablesPerCatalog = dp.totalTables / dp.numCatalogs
+    val catalogIndex = index / tablesPerCatalog
+
+    var currentSlice = partitionSlice(Slice(0, dp.totalTables), dp.numCatalogs, catalogIndex)
+    val namespacePath = ArrayBuffer[String]()
+    (0 until dp.nsDepth).foreach { _ =>
+      val indexInSlice = index - currentSlice.start
+      val namespaceIndex = indexInSlice / dp.nsWidth
+      currentSlice = partitionSlice(currentSlice, dp.nsWidth, namespaceIndex)
+      namespacePath += s"NS_${namespaceIndex}"
+    }
+    require(currentSlice.size == dp.numTablesPerNs, "The final slice size should match numTablesPerNs")
+    (s"C_$catalogIndex", namespacePath.toList, s"T_${index - currentSlice.start}")
+  }
+}
+
+case class RandomNumberProvider(seed: Int, threadId: Int) {
+  private[this] val random = new Random(seed + threadId)
+  def next(): Double = random.nextGaussian()
+}
