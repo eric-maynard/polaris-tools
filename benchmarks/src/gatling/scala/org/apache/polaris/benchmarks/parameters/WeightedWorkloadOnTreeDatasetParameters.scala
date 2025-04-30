@@ -60,10 +60,10 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
   private val logger = LoggerFactory.getLogger(getClass)
 
   def printDescription(): Unit = {
-    println(s"Summary for ${this}")
+    println(s"Summary for ${this}:")
 
     // On startup, print some metadata about the distribution
-    printVisualiztion()
+    printVisualization()
 
     // Warn if a large amount of resampling will be needed
     val debugRandomNumberProvider = RandomNumberProvider(1, 2)
@@ -77,7 +77,7 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
       .getOrElse((-1, 100000))
 
     if (resamples > 5) {
-      logger.warn(s"A distribution appears to require aggressive resampling: ${this} took ${resamples + 1} samples")
+      logger.warn(s"A distribution appears to require aggressive resampling: ${this} took ${resamples + 1} samples!")
     }
   }
 
@@ -95,9 +95,9 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
     (value * items).toInt.min(items - 1)
   }
 
-  def printVisualiztion(samples: Int = 100000, bins: Int = 10): Unit = {
+  def printVisualization(samples: Int = 100000, bins: Int = 10): Unit = {
     val binCounts = Array.fill(bins)(0)
-    val rng = new RandomNumberProvider(1, 2)
+    val rng = RandomNumberProvider("visualization".hashCode, -1)
 
     for (_ <- 1 to samples) {
       val value = Iterator
@@ -111,15 +111,15 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
 
     val maxBarWidth = 50
     val total = binCounts.sum.toDouble
-    println("Range         | % of Samples | Visualization")
-    println("--------------|--------------|------------------")
+    println("  Range         | % of Samples | Visualization")
+    println("  --------------|--------------|------------------")
 
     for (i <- 0 until bins) {
       val low = i.toDouble / bins
       val high = (i + 1).toDouble / bins
       val percent = binCounts(i) / total * 100
       val bar = "█" * ((percent / 100 * maxBarWidth).round.toInt)
-      println(f"[$low%.1f - $high%.1f) | $percent%6.2f%%      | $bar")
+      println(f"  [$low%.1f - $high%.1f) | $percent%6.2f%%      | $bar")
     }
     println()
   }
