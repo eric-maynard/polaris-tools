@@ -57,30 +57,20 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   private val tblActions = TableActions(dp, wp, accessToken)
 
   // --------------------------------------------------------------------------------
-  // Authentication related workloads:
-  // * Authenticate and store the access token for later use every minute
-  // * Wait for an OAuth token to be available
-  // * Stop the token refresh loop
+  // Authentication related workloads
   // --------------------------------------------------------------------------------
-  val continuouslyRefreshOauthToken: ScenarioBuilder =
+  val refreshOauthForDuration: ScenarioBuilder =
     scenario("Authenticate every minute using the Iceberg REST API")
-      .asLongAs(_ => shouldRefreshToken.get()) {
+      .during(wp.weightedWorkloadOnTreeDataset.durationInMinutes.minutes) {
         feed(authActions.feeder())
           .exec(authActions.authenticateAndSaveAccessToken)
-          .pause(1.minute)
+          .pause(30.seconds)
       }
 
   val waitForAuthentication: ScenarioBuilder =
     scenario("Wait for the authentication token to be available")
       .asLongAs(_ => accessToken.get() == null) {
         pause(1.second)
-      }
-
-  val stopRefreshingToken: ScenarioBuilder =
-    scenario("Stop refreshing the authentication token")
-      .exec { session =>
-        shouldRefreshToken.set(false)
-        session
       }
 
   // --------------------------------------------------------------------------------
@@ -120,15 +110,8 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   // --------------------------------------------------------------------------------
   setUp(
     List(
-      continuouslyRefreshOauthToken.inject(atOnceUsers(1)).protocols(httpProtocol),
-      waitForAuthentication
-        .inject(atOnceUsers(1))
-        .protocols(httpProtocol)
-        .andThen(
-          stopRefreshingToken
-            .inject(atOnceUsers(1))
-            .protocols(httpProtocol)
-        )
+      refreshOauthForDuration.inject(atOnceUsers(1)).protocols(httpProtocol),
+      waitForAuthentication.inject(atOnceUsers(1)).protocols(httpProtocol)
     ) ++ readerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol))
   )
 }
