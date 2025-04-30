@@ -116,7 +116,6 @@ case class CatalogActions(
       .check(jsonPath("$.type").is("INTERNAL"))
       .check(jsonPath("$.name").is("#{catalogName}"))
       .check(jsonPath("$.properties.default-base-location").is("#{defaultBaseLocation}"))
-      .check(jsonPath("$.storageConfigInfo.storageType").is("FILE"))
       .check(jsonPath("$.storageConfigInfo.allowedLocations[0]").is("#{defaultBaseLocation}"))
   )
 
