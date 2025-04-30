@@ -54,7 +54,7 @@ case class DatasetParameters(
     numViewProperties: Int
 ) {
   val nAryTree: NAryTreeBuilder = NAryTreeBuilder(nsWidth, nsDepth)
-  private val maxPossibleTables = nAryTree.numberOfLastLevelElements * numTablesPerNs
+  val maxPossibleTables = nAryTree.numberOfLastLevelElements * numTablesPerNs
   private val maxPossibleViews = nAryTree.numberOfLastLevelElements * numViewsPerNs
   val numTables: Int = if (numTablesMax <= 0) maxPossibleTables else numTablesMax
   val numViews: Int = if (numViewsMax <= 0) maxPossibleViews else numViewsMax
@@ -78,10 +78,4 @@ case class DatasetParameters(
     numViewsMax == -1 || numViewsMax <= maxPossibleViews,
     s"Maximum number of views ($numViewsMax) cannot exceed computed total ($maxPossibleViews)"
   )
-
-  val totalTables: Int = if (numTablesMax != -1) {
-    numCatalogs * numTablesMax
-  } else {
-    numCatalogs * numTablesPerNs * nAryTree.numberOfLastLevelElements
-  }
 }

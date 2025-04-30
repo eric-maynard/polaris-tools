@@ -92,13 +92,23 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
           .exec(authActions.restoreAccessTokenInSession)
           .during(wp.weightedWorkloadOnTreeDataset.durationInMinutes.minutes) {
             exec { session =>
-              val tableIndex = dist.sample(dp.totalTables, rnp)
+              val tableIndex = dist.sample(dp.maxPossibleTables, rnp)
               val (catalog, namespace, table) =
                 Distribution.tableIndexToIdentifier(tableIndex, dp)
+
+              // Checked in `fetchTable`
+              val expectedProperties: Map[String, String] = (0 until dp.numTableProperties)
+                .map(id => s"InitialAttribute_$id" -> s"$id")
+                .toMap
+              val expectedLocation =
+                s"${dp.defaultBaseLocation}/$catalog/${namespace.mkString("/")}/${table}"
+
               session
                 .set("catalogName", catalog)
                 .set("multipartNamespace", namespace.mkString(0x1F.toChar.toString))
                 .set("tableName", table)
+                .set("initialProperties", expectedProperties)
+                .set("location", expectedLocation)
             }.exec(tblActions.fetchTable)
           }
       }

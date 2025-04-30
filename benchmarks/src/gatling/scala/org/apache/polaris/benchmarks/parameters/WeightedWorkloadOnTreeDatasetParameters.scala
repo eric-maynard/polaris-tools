@@ -76,11 +76,11 @@ object Distribution {
   def tableIndexToIdentifier(index: Int, dp: DatasetParameters): (String, List[String], String) = {
     require(dp.numTablesMax == -1, "Sampling is incompatible with numTablesMax settings other than -1")
 
-    val tablesPerCatalog = dp.totalTables / dp.numCatalogs
-    val catalogIndex = index / tablesPerCatalog
+    val namespaceIndex = index / dp.numTablesPerNs
+    val namespaceOrdinal = dp.nAryTree.lastLevelOrdinals.toList.apply(namespaceIndex)
+    val namespacePath = dp.nAryTree.pathToRoot(namespaceOrdinal)
 
-    val namespaceOrdinal = dp.nAryTree.pathToRoot(index / dp.numTablesPerNs)
-    (s"C_$catalogIndex", namespaceOrdinal.map(n => s"NS_${n}"), s"T_${index}")
+    (s"C_0", namespacePath.map(n => s"NS_${n}"), s"T_${index}")
   }
 }
 
