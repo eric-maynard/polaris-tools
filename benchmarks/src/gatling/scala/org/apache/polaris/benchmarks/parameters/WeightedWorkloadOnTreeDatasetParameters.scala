@@ -73,7 +73,7 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
 
     val (_, resamples) = resampleStream.zipWithIndex
       .take(100000)
-      .find { case (value, _) => value >= 0 && value <= 1 }
+      .find { case (value, _) => value >= 0 && value < dataset.maxPossibleTables}
       .map { case (value, index) => (value, index) }
       .getOrElse((-1, 100000))
 
