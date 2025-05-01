@@ -232,6 +232,7 @@ The data set size can be adjusted as well. Each namespace is associated with an 
 
 The diagram below shows sample catalog, namespace and table definition given the following properties:
 
+-   storage-config-info: `{"storageType": "FILE"}`
 -   Default base location: `file:///tmp/polaris`
 -   Number of namespace properties: `100`
 -   Number of columns per table: `999`
