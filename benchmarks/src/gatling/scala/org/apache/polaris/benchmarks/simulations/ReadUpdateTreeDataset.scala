@@ -142,6 +142,7 @@ class ReadUpdateTreeDataset extends Simulation {
     .baseUrl(cp.baseUrl)
     .acceptHeader("application/json")
     .contentTypeHeader("application/json")
+    .disableCaching
 
   // Get the configured throughput and duration
   private val throughput = wp.readUpdateTreeDataset.throughput
