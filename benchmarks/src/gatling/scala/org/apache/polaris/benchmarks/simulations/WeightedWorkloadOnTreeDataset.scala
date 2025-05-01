@@ -89,6 +89,7 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
     .baseUrl(cp.baseUrl)
     .acceptHeader("application/json")
     .contentTypeHeader("application/json")
+    .disableCaching
 
   // --------------------------------------------------------------------------------
   // Create all reader/writer scenarios and prepare them for injection
