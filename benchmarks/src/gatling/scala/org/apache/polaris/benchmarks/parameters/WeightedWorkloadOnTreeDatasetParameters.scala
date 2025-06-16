@@ -74,7 +74,6 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
     val (_, resamples) = resampleStream.zipWithIndex
       .take(100000)
       .find { case (value, _) => value >= 0 && value < dataset.maxPossibleTables }
-      .map { case (value, index) => (value, index) }
       .getOrElse((-1, 100000))
 
     if (resamples > 100) {
@@ -151,6 +150,7 @@ object Distribution {
     val namespaceOrdinal = dp.nAryTree.lastLevelOrdinals.toList.apply(namespaceIndex)
     val namespacePath = dp.nAryTree.pathToRoot(namespaceOrdinal)
 
+    // TODO Refactor this line once entity names are configurable
     (s"C_0", namespacePath.map(n => s"NS_${n}"), s"T_${index}")
   }
 }
