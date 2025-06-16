@@ -62,7 +62,8 @@ case class CatalogActions(
       val catalogName = s"C_$i"
       Map(
         "catalogName" -> catalogName,
-        "defaultBaseLocation" -> s"${dp.defaultBaseLocation}/$catalogName"
+        "defaultBaseLocation" -> s"${dp.defaultBaseLocation}/$catalogName",
+        "storageConfigInfo" -> dp.storageConfigInfo
       )
     }
     .take(dp.numCatalogs)
@@ -90,9 +91,7 @@ case class CatalogActions(
               |    "properties": {
               |      "default-base-location": "#{defaultBaseLocation}"
               |    },
-              |    "storageConfigInfo": {
-              |      "storageType": "FILE"
-              |    }
+              |    "storageConfigInfo": #{storageConfigInfo}
               |  }
               |}""".stripMargin
           )
@@ -117,7 +116,6 @@ case class CatalogActions(
       .check(jsonPath("$.type").is("INTERNAL"))
       .check(jsonPath("$.name").is("#{catalogName}"))
       .check(jsonPath("$.properties.default-base-location").is("#{defaultBaseLocation}"))
-      .check(jsonPath("$.storageConfigInfo.storageType").is("FILE"))
       .check(jsonPath("$.storageConfigInfo.allowedLocations[0]").is("#{defaultBaseLocation}"))
   )
 

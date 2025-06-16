@@ -152,6 +152,7 @@ class ReadTreeDataset extends Simulation {
     .baseUrl(cp.baseUrl)
     .acceptHeader("application/json")
     .contentTypeHeader("application/json")
+    .disableCaching
 
   // Get the configured throughput for tables and views
   private val tableThroughput = wp.readTreeDataset.tableThroughput

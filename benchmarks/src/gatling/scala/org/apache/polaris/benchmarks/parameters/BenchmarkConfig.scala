@@ -39,12 +39,18 @@ object BenchmarkConfig {
     )
 
     val workloadParams = {
+      val ccConfig = workload.getConfig("create-commits")
       val rtdConfig = workload.getConfig("read-tree-dataset")
       val ctdConfig = workload.getConfig("create-tree-dataset")
       val rutdConfig = workload.getConfig("read-update-tree-dataset")
       val wwotdConfig = workload.getConfig("weighted-workload-on-tree-dataset")
 
       WorkloadParameters(
+        CreateCommitsParameters(
+          ccConfig.getInt("table-commits-throughput"),
+          ccConfig.getInt("view-commits-throughput"),
+          ccConfig.getInt("duration-in-minutes")
+        ),
         ReadTreeDatasetParameters(
           rtdConfig.getInt("table-concurrency"),
           rtdConfig.getInt("view-concurrency")
@@ -80,7 +86,8 @@ object BenchmarkConfig {
       dataset.getInt("views-per-namespace"),
       dataset.getInt("max-views"),
       dataset.getInt("columns-per-view"),
-      dataset.getInt("view-properties")
+      dataset.getInt("view-properties"),
+      dataset.getString("storage-config-info")
     )
 
     BenchmarkConfig(connectionParams, workloadParams, datasetParams)
