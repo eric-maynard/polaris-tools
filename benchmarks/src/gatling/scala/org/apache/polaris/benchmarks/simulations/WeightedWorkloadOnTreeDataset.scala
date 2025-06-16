@@ -52,7 +52,9 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   val wp: WorkloadParameters = config.workloadParameters
 
   if (dp.numTablesMax > 0) {
-    throw new RuntimeException("This workload is not compatible with the dataset option `numTablesMax`.")
+    throw new RuntimeException(
+      "This workload is not compatible with the dataset option `numTablesMax`."
+    )
   }
 
   println("### Reader distributions ###")
@@ -159,7 +161,9 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   // --------------------------------------------------------------------------------
   setUp(
     refreshOauthForDuration.inject(atOnceUsers(1)).protocols(httpProtocol),
-    waitForAuthentication.inject(atOnceUsers(1)).protocols(httpProtocol)
+    waitForAuthentication
+      .inject(atOnceUsers(1))
+      .protocols(httpProtocol)
       .andThen(
         readerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol)) ++
           writerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol))
