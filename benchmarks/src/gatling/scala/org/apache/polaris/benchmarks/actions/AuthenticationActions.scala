@@ -31,7 +31,6 @@ import org.apache.polaris.benchmarks.parameters.ConnectionParameters
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicReference
-import scala.concurrent.duration.DurationInt
 
 /**
  * Actions for performance testing authentication operations. This class provides methods to
@@ -86,7 +85,7 @@ case class AuthenticationActions(
         .check(jsonPath("$.access_token").saveAs("accessToken"))
     )
       .exec { session =>
-        if (session.contains("accessToken") && session("accessToken") != null) {
+        if (session.contains("accessToken")) {
           accessToken.set(session("accessToken").as[String])
         }
         session
@@ -98,9 +97,5 @@ case class AuthenticationActions(
    * scenario.
    */
   val restoreAccessTokenInSession: ChainBuilder =
-    asLongAs(_ => accessToken.get() == null) {
-      pause(1.second)
-    }.exec { session =>
-      session.set("accessToken", accessToken.get())
-    }
+    exec(session => session.set("accessToken", accessToken.get()))
 }

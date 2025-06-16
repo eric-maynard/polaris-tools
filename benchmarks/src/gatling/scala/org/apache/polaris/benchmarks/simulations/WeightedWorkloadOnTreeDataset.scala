@@ -154,11 +154,11 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   // Setup
   // --------------------------------------------------------------------------------
   setUp(
-    List(
-      refreshOauthForDuration.inject(atOnceUsers(1)).protocols(httpProtocol),
-      waitForAuthentication.inject(atOnceUsers(1)).protocols(httpProtocol)
-    ) ++
-      readerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol)) ++
-      writerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol))
+    refreshOauthForDuration.inject(atOnceUsers(1)).protocols(httpProtocol),
+    waitForAuthentication.inject(atOnceUsers(1)).protocols(httpProtocol)
+      .andThen(
+        readerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol)) ++
+          writerScenarioBuilders.map(_.inject(atOnceUsers(1)).protocols(httpProtocol))
+      )
   )
 }
