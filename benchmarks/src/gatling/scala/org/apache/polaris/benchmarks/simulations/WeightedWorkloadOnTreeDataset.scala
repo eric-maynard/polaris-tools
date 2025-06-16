@@ -51,6 +51,10 @@ class WeightedWorkloadOnTreeDataset extends Simulation {
   val dp: DatasetParameters = config.datasetParameters
   val wp: WorkloadParameters = config.workloadParameters
 
+  if (dp.numTablesMax > 0) {
+    throw new RuntimeException("This workload is not compatible with the dataset option `numTablesMax`.")
+  }
+
   println("### Reader distributions ###")
   wp.weightedWorkloadOnTreeDataset.readers.foreach(_.printDescription(dp))
 
