@@ -19,6 +19,6 @@
 
 package org.apache.polaris.connectors.hive;
 
-public class HiveGenericCatalog {
+public class HiveGenericCatalog implements GenericTableCatalog {
     
 }
