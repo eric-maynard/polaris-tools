@@ -66,7 +66,10 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
     // Visualize distributions
     printVisualization(dataset.maxPossibleTables)
 
-    // Warn if a large amount of resampling will be needed
+    // Warn if a large amount of resampling will be needed. We use a unique, but fixed,
+    // seed here as it would be impossible to represent all the different reader & writer
+    // seeds in one RandomNumberProvider here. The resulting samples, therefore, are
+    // just an approximation of what will happen in the scenario.
     val debugRandomNumberProvider = RandomNumberProvider("debug".hashCode, -1)
     def resampleStream: LazyList[Double] =
       LazyList.continually(sample(dataset.maxPossibleTables, debugRandomNumberProvider))
@@ -106,6 +109,10 @@ case class Distribution(count: Int, mean: Double, variance: Double) {
   def printVisualization(tables: Int, samples: Int = 100000, bins: Int = 10): Unit = {
     val binCounts = Array.fill(bins)(0)
     val hits = new mutable.HashMap[Int, Int]()
+
+    // We use a unique, but fixed, seed here as it would be impossible to represent all
+    // the different reader & writer seeds in one RandomNumberProvider here. The resulting
+    // samples, therefore, are just an approximation of what will happen in the scenario.
     val rng = RandomNumberProvider("visualization".hashCode, -1)
 
     (1 to samples).foreach { _ =>
