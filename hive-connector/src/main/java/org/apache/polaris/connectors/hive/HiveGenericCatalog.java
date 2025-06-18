@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Implements `GenericTableCatalog` by delegating to a Hive Metastote instance
+ * Implements `GenericTableCatalog` by delegating to a Hive Metastore instance
  */
 public class HiveGenericCatalog implements GenericTableCatalog, Closeable {
 
@@ -85,12 +85,10 @@ public class HiveGenericCatalog implements GenericTableCatalog, Closeable {
   @Override
   public List<TableIdentifier> listGenericTables(Namespace namespace) {
     return withClient(client -> {
-      final List<String> tableNames;
-      if (namespace.levels().length == 1) {
-        tableNames = client.getAllTables(namespace.level(0));
-      } else {
+      if (namespace.levels().length != 1) {
         throw new IllegalArgumentException("Hive namespaces only support one level");
       }
+      List<String>tableNames = client.getAllTables(namespace.level(0));
       return tableNames.stream().map(name -> {
         return TableIdentifier.of(namespace, name);
       }).toList();
@@ -101,11 +99,10 @@ public class HiveGenericCatalog implements GenericTableCatalog, Closeable {
   public boolean dropGenericTable(TableIdentifier tableIdentifier) {
     return withClient(client -> {
       Namespace namespace = tableIdentifier.namespace();
-      if (namespace.levels().length == 1) {
-        client.dropTable(namespace.level(0), tableIdentifier.name());
-      } else {
+      if (namespace.levels().length != 1) {
         throw new IllegalArgumentException("Hive namespaces only support one level");
       }
+      client.dropTable(namespace.level(0), tableIdentifier.name());
       return true;
     });
   }
@@ -126,12 +123,10 @@ public class HiveGenericCatalog implements GenericTableCatalog, Closeable {
   public GenericTableEntity loadGenericTable(TableIdentifier tableIdentifier) {
     return withClient(client -> {
       Namespace namespace = tableIdentifier.namespace();
-      Table table;
-      if (namespace.levels().length == 1) {
-        table = client.getTable(namespace.level(0), tableIdentifier.name());
-      } else {
+      if (namespace.levels().length != 1) {
         throw new IllegalArgumentException("Hive namespaces only support one level");
       }
+      Table table = client.getTable(namespace.level(0), tableIdentifier.name());
       return tableToGenericTable(tableIdentifier, table);
     });
   }
